@@ -2,86 +2,73 @@ package generators
 
 import "github.com/dpordomingo/learning-exercises/ant/geo"
 
-type MapStringGenerator struct {
+//Struct that can generate random maps
+type MapGenerator struct {
 	size      geo.Size
-	target    *geo.Point
-	source    *geo.Point
-	obstacles []obstacle
+	area      geo.Area
+	obstacles []geo.Size
 }
 
-type obstacle struct {
-	Point geo.Point
-	geo.Area
-}
-
-func NewMapStringGenerator(size geo.Size) *MapStringGenerator {
-	return &MapStringGenerator{
+//NewMapGenerator returns a MapGenerator
+func NewMapGenerator(size geo.Size) *MapGenerator {
+	return &MapGenerator{
 		size: size,
+		area: size.BuildArea(),
 	}
 }
 
-//TODO: errores
-// default values vs undefined values
-func (g *MapStringGenerator) Generate() (*geo.Map, *geo.Point, *geo.Point, error) {
+//DefineObstacle adds the required number of obstacles of the given size to the generator
+func (g *MapGenerator) DefineObstacles(count int32, size geo.Size) *MapGenerator {
+	for i := int32(1); i <= count; i++ {
+		g.obstacles = append(g.obstacles, size)
+	}
+
+	return g
+}
+
+//Generate returns the random Map
+func (g *MapGenerator) Generate() (*geo.Map, error) {
+
 	generatedMap := g.getClearMap()
 	g.addObstacles(generatedMap)
 
-	if g.target == nil {
-		g.target = GetPointInMap(generatedMap)
-	}
-	if g.source == nil {
-		g.source = GetPointInMap(generatedMap)
-	}
-
-	return generatedMap, g.target, g.source, nil
+	return generatedMap, nil
 }
 
-func (g *MapStringGenerator) DefineSource(sourceX, sourceY int32) *MapStringGenerator {
-	g.source = &geo.Point{sourceX, sourceY}
-	return g
-}
-
-func (g *MapStringGenerator) DefineTarget(targetX, targetY int32) *MapStringGenerator {
-	g.target = &geo.Point{targetX, targetY}
-	return g
-}
-
-func (g *MapStringGenerator) DefineObstacle(count, sizeX, sizeY int32) *MapStringGenerator {
-	for i := int32(1); i <= count; i++ {
-		area := &geo.Area{g.size.W, g.size.H}
-		size := &geo.Size{sizeX, sizeY}
-		obstaclePoint, obstacleArea, _ := GetRandomIncludedArea(area, size)
-		obstacle := obstacle{*obstaclePoint, obstacleArea}
-		g.obstacles = append(g.obstacles, obstacle)
-	}
-
-	return g
-}
-
-func (g *MapStringGenerator) getClearMap() *geo.Map {
-	generatedMap := geo.Map{}
-	generatedMap.W = g.size.W
-	generatedMap.H = g.size.H
-	for j := int32(0); j < g.size.H; j++ {
+func (g *MapGenerator) getClearMap() *geo.Map {
+	generatedMap := geo.NewMap()
+	for j := int32(0); j < g.size.H(); j++ {
 		row := geo.Row{}
-		for i := int32(0); i < g.size.W; i++ {
+		for i := int32(0); i < g.size.W(); i++ {
 			row = append(row, true)
 		}
+
 		generatedMap.AddRow(row)
 	}
 
-	return &generatedMap
+	return generatedMap
 }
 
-func (g *MapStringGenerator) addObstacles(givenMap *geo.Map) *geo.Map {
-	for _, obstacle := range g.obstacles {
-		point := obstacle.Point
-		area := obstacle.Area
-		for i := point.X; i < point.X+area.W; i++ {
-			for j := point.Y; j < point.Y+area.H; j++ {
-				givenMap.World[j][i] = false
+func (g *MapGenerator) addObstacles(givenMap *geo.Map) *geo.Map {
+	for _, obstacle := range g.getRandomObstacles() {
+		for x := obstacle.X; x < obstacle.X+obstacle.W(); x++ {
+			for y := obstacle.Y; y < obstacle.Y+obstacle.H(); y++ {
+				if givenMap.IsInside(geo.Point{X: x, Y: y}) {
+					givenMap.World[y][x] = false
+				}
 			}
 		}
 	}
+
 	return givenMap
+}
+
+func (g *MapGenerator) getRandomObstacles() []geo.LocatedArea {
+	var obstacles []geo.LocatedArea
+	for i := range g.obstacles {
+		obstacle, _ := GetRandomIncludedArea(g.area, g.obstacles[i])
+		obstacles = append(obstacles, obstacle)
+	}
+
+	return obstacles
 }

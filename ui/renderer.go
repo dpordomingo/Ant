@@ -1,33 +1,47 @@
 package ui
 
-import "github.com/dpordomingo/learning-exercises/ant/geo"
+import (
+	"fmt"
 
-var (
-	SYMBOL_GRASS_BLANK  string = " "
-	SYMBOL_POINT        string = string([]byte{226, 173, 153})
-	SYMBOL_QUEEN        string = string([]byte{226, 153, 148})
-	SYMBOL_ANT          string = string([]byte{240, 159, 144, 156})
-	SYMBOL_GRASS_LIGHT  string = string([]byte{226, 150, 145})
-	SYMBOL_GRASS_MEDIUM string = string([]byte{226, 150, 146})
-	SYMBOL_GRASS_DARK   string = string([]byte{226, 150, 147})
+	"github.com/dpordomingo/learning-exercises/ant/actors"
+	"github.com/dpordomingo/learning-exercises/ant/geo"
+	"github.com/dpordomingo/learning-exercises/ant/literals"
 )
 
-//http://unicode-table.com/en/#2654
-func GetRepresentation(m *geo.Map, target *geo.Point, ant *geo.Point) string {
+//GetRepresentation returns a stringified representation of a Map, target and Rover
+func GetRepresentation(m *geo.Map, target *geo.Point, rover actors.Rover) string {
 	output := ""
 	for r := range m.World {
 		for c := range m.World[r] {
-			if target.Equals(int32(c), int32(r)) {
-				output += SYMBOL_POINT
-			} else if ant.Equals(int32(c), int32(r)) {
-				output += SYMBOL_ANT
-			} else if m.World[r][c] {
-				output += SYMBOL_GRASS_LIGHT
+			cursorPoint := geo.Point{X: int32(c), Y: int32(r)}
+			if target != nil && cursorPoint.Equals(*target) {
+				output += literals.SYMBOL_POINT
+			} else if rover != nil && cursorPoint.Equals(rover.Position()) {
+				output += literals.SYMBOL_ANT
+			} else if m.IsInside(geo.Point{X: int32(c), Y: int32(r)}) {
+				output += literals.SYMBOL_GRASS_LIGHT
 			} else {
-				output += SYMBOL_GRASS_BLANK
+				output += literals.SYMBOL_GRASS_BLANK
 			}
 		}
+
 		output += "\n"
 	}
+
 	return output
+}
+
+//PrintRepresentation writes over the STDoutput the stringified representation of a Map, target and Rover
+func PrintRepresentation(m *geo.Map, target *geo.Point, rover actors.Rover) {
+	fmt.Println(GetRepresentation(m, target, rover))
+	fmt.Printf("Map size: %d,%d\n", m.W(), m.H())
+
+	if rover != nil {
+		fmt.Printf("Rover: %d,%d\n", rover.Position().X, rover.Position().Y)
+	}
+
+	if target != nil {
+		fmt.Printf("Target: %d,%d\n", target.X, target.Y)
+	}
+	fmt.Println("\n")
 }

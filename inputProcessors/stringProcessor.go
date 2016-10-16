@@ -2,18 +2,18 @@ package inputProcessors
 
 import (
 	"bufio"
-	"os"
+	"io"
 
-	"github.com/dpordomingo/learning-exercises/ant/actors"
 	"github.com/dpordomingo/learning-exercises/ant/geo"
+	"github.com/dpordomingo/learning-exercises/ant/literals"
 )
 
-func Process(f *os.File) (
-	geo.Map, geo.Point, actors.Ant) {
+//Process returns a Map, origin and destiny from STDin
+func Process(f io.Reader) (*geo.Map, *geo.Point, *geo.Point, error) {
 
-	var place geo.Map
-	var mapTarget geo.Point
-	var ant actors.Ant
+	var mapTarget *geo.Point
+	var mapOrigin *geo.Point
+	place := geo.NewMap()
 
 	input := bufio.NewScanner(f)
 
@@ -21,23 +21,34 @@ func Process(f *os.File) (
 	for input.Scan() {
 		var rowMap geo.Row
 		rowString := input.Text()
-		for c := range rowString {
-			char := rowString[c : c+1]
-			if char == "X" {
-				mapTarget.X = rowNumber
-				mapTarget.Y = c
+		i := 0
+		for _, rune := range rowString {
+			point := geo.Point{X: int32(i), Y: int32(rowNumber)}
+			if string(rune) == "X" || string(rune) == literals.SYMBOL_ANT {
+				mapTarget = &point
 			}
-			if char == "O" {
-				ant.Origin = geo.Point{X: rowNumber, Y: c}
+			if string(rune) == "O" || string(rune) == literals.SYMBOL_POINT {
+				mapOrigin = &point
 			}
-			rowMap = append(rowMap, char != " ")
+			rowMap = append(rowMap, string(rune) != " ")
+			i++
 		}
 
 		place.AddRow(rowMap)
 		rowNumber++
-		//fmt.Println(rowMap)
 	}
-	//fmt.Println(place)
 
-	return place, mapTarget, ant
+	return place, mapOrigin, mapTarget, nil
+}
+
+type P struct {
+	X int
+}
+
+func getP(empty bool) *P {
+	if empty {
+		return nil
+	} else {
+		return &P{2}
+	}
 }
